@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit colors="true" cacheDirectory=".phpunit.cache" failOnWarning="true">
+  <testsuites><testsuite name="HTTP characterization and API"><directory>tests</directory></testsuite></testsuites>
+</phpunit>

@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-sellerboost}
+      MYSQL_USER: ${DB_USER:-sellerboost}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local-demo-password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local-root-password}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./docker/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  web:
+    build:
+      context: .
+      target: ${BUILD_TARGET:-hybrid}
+    ports: ["127.0.0.1:${APP_PORT:-18081}:8080"]
+    volumes:
+      - sessions:/var/lib/php/sessions
+    environment: &app-env
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-sellerboost}
+      DB_USER: ${DB_USER:-sellerboost}
+      DB_PASSWORD: ${DB_PASSWORD:-local-demo-password}
+      MIGRATE_CHECKOUT: ${MIGRATE_CHECKOUT:-0}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-local-admin-password}
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/api/session') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    depends_on:
+      db:
+        condition: service_healthy
+  tests:
+    profiles: [test]
+    build:
+      context: .
+      target: test
+    environment:
+      <<: *app-env
+      TEST_BASE_URL: http://web:8080
+    depends_on:
+      web:
+        condition: service_healthy
+volumes:
+  db-data:
+  sessions:

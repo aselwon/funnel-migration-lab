@@ -1,0 +1,8 @@
+.git
+.env
+.env.local
+vendor
+frontend/node_modules
+public/app
+test-results
+playwright-report
